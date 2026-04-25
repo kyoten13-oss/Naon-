@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SANS LABORATORY 3D</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<style>
+body { margin:0; overflow:hidden; background:black; font-family: monospace; }
+canvas { display:block; }
+
+#loading-overlay{
+  position:fixed; inset:0;
+  background:#05070a;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  z-index:9999;
+}
+
+#start-btn{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transform:translateY(20px);
+  transition:.5s;
+}
+
+#start-btn.show{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+  transform:translateY(0);
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading-overlay">
+  <h2 style="color:#3b82f6;">SANS LAB</h2>
+
+  <button id="start-btn" onclick="startApp()"
+  style="padding:12px 20px; border:1px solid #3b82f6; color:#3b82f6; border-radius:20px;">
+    ENTER INTERFACE
+  </button>
+</div>
+
+<video id="input_video" autoplay muted playsinline style="display:none;"></video>
+
+<script>
+let scene, camera, renderer;
+
+function initThree(){
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 1000);
+  camera.position.z = 80;
+
+  renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const geo = new THREE.BoxGeometry(10,10,10);
+  const mat = new THREE.MeshNormalMaterial();
+  const cube = new THREE.Mesh(geo, mat);
+  scene.add(cube);
+
+  function animate(){
+    requestAnimationFrame(animate);
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.01;
+    renderer.render(scene, camera);
+  }
+
+  animate();
+}
+
+function startLoadingTimer(){
+  setTimeout(()=>{
+    document.getElementById("start-btn").classList.add("show");
+  }, 2000);
+}
+
+function startApp(){
+  document.getElementById("loading-overlay").style.display="none";
+  initThree();
+  initCamera();
+}
+
+function initCamera(){
+  const video = document.getElementById("input_video");
+
+  const hands = new Hands({
+    locateFile:(f)=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+  });
+
+  hands.setOptions({
+    maxNumHands:2,
+    minDetectionConfidence:0.6,
+    minTrackingConfidence:0.6
+  });
+
+  const cam = new Camera(video,{
+    onFrame: async ()=>{
+      await hands.send({image:video});
+    },
+    width:640,
+    height:480
+  });
+
+  cam.start();
+}
+
+window.onload = () => {
+  initThree();
+  startLoadingTimer();
+};
+</script>
+
+</body>
+</html>
